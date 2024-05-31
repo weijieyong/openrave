@@ -398,6 +398,7 @@ int KinBody::GeometryInfo::Compare(const GeometryInfo& rhs, dReal fUnitScale, dR
         }
         break;
 
+    case GT_Capsule:
     case GT_Cylinder:
         if( RaveFabs(_vGeomData.x - rhs._vGeomData.x*fUnitScale) > fEpsilon || RaveFabs(_vGeomData.y - rhs._vGeomData.y*fUnitScale) > fEpsilon ) {
             return 8;
@@ -474,6 +475,7 @@ int KinBody::GeometryInfo::Compare(const GeometryInfo& rhs, dReal fUnitScale, dR
             return 30;
         }
     // use collision mesh to make the rest of the comparison
+    case GT_Prism:
     case GT_TriMesh:
         if( _meshcollision.vertices.size() != rhs._meshcollision.vertices.size() ) {
             return 17;
@@ -510,7 +512,7 @@ int KinBody::GeometryInfo::Compare(const GeometryInfo& rhs, dReal fUnitScale, dR
 
 bool KinBody::GeometryInfo::InitCollisionMesh(float fTessellation)
 {
-    if( _type == GT_TriMesh || _type == GT_None ) {
+    if( _type == GT_None || _type == GT_TriMesh || _type == GT_Prism ) {
         return true;
     }
 
@@ -569,6 +571,20 @@ bool KinBody::GeometryInfo::InitCollisionMesh(float fTessellation)
         // cylinder is on z axis
         int numverts = (int)(fTessellation*48.0f) + 3;
         AppendCylinderTriangulation(Vector(0, 0, 0), GetCylinderRadius(), GetCylinderHeight()*0.5, numverts, _meshcollision);
+        break;
+    }
+    case GT_Capsule: {
+        // capsule is on z axis
+        int numverts = (int)(fTessellation*48.0f) + 3;
+        AppendCylinderTriangulation(Vector(0, 0, 0), GetCapsuleRadius(), GetCapsuleHeight()*0.5, numverts, _meshcollision);
+        TriMesh tri;
+        GenerateSphereTriangulation(tri, 3 + (int)(logf(fTessellation) / logf(2.0f)));
+        dReal fRadius = GetCapsuleRadius();
+        FOREACH(it, tri.vertices) {
+            *it *= fRadius;
+        }
+        _meshcollision.Append(tri, Transform(Vector(), Vector(0, 0, GetCapsuleHeight() * 0.5)));
+        _meshcollision.Append(tri, Transform(Vector(), Vector(0, 0, -GetCapsuleHeight() * 0.5)));
         break;
     }
     case GT_ConicalFrustum:
@@ -958,6 +974,7 @@ void KinBody::GeometryInfo::ConvertUnitScale(dReal fUnitScale)
         _vPositiveCropContainerEmptyMargins *= fUnitScale;
         break;
     }
+    case GT_Capsule:
     case GT_ConicalFrustum:
     case GT_Sphere:
     case GT_Cylinder:
@@ -971,6 +988,7 @@ void KinBody::GeometryInfo::ConvertUnitScale(dReal fUnitScale)
         }
         break;
 
+    case GT_Prism:
     case GT_TriMesh:
         FOREACH(itvertex, _meshcollision.vertices) {
             *itvertex *= fUnitScale;
@@ -1043,6 +1061,10 @@ const char* GetGeometryTypeString(GeometryType geometryType)
         return "calibrationboard";
     case GT_ConicalFrustum:
         return "conicalfrustum";
+    case GT_Prism:
+        return "prism";
+    case GT_Capsule:
+        return "capsule";
     case GT_None:
         return "";
     }
@@ -1162,6 +1184,23 @@ void KinBody::GeometryInfo::SerializeJSON(rapidjson::Value& rGeometryInfo, rapid
         orjson::SetJsonValueByKey(rGeometryInfo, "axial", rAxial, allocator);
         break;
     }
+    case GT_Prism: {
+        rapidjson::Value rPoints;
+        rPoints.SetArray();
+        rPoints.Reserve(_meshcollision.vertices.size(), allocator);
+        for( size_t ipoint = 0; ipoint < _meshcollision.vertices.size(); ipoint += 2 ) {
+            rPoints.PushBack(_meshcollision.vertices[ipoint].x * fUnitScale, allocator);
+            rPoints.PushBack(_meshcollision.vertices[ipoint].y * fUnitScale, allocator);
+        }
+        rGeometryInfo.AddMember("points", rPoints, allocator);
+        rGeometryInfo.AddMember("height", _vGeomData.y, allocator);
+        break;
+    }
+    case GT_Capsule: {
+        orjson::SetJsonValueByKey(rGeometryInfo, "radius", _vGeomData.x * fUnitScale, allocator);
+        orjson::SetJsonValueByKey(rGeometryInfo, "height", _vGeomData.y * fUnitScale, allocator);
+        break;
+    }
     case GT_TriMesh: {
         // has to be scaled correctly
         rapidjson::Value rTriMesh;
@@ -1263,6 +1302,12 @@ void KinBody::GeometryInfo::DeserializeJSON(const rapidjson::Value &value, const
         }
         else if (typestr == "conicalfrustum") {
             type = GT_ConicalFrustum;
+        }
+        else if (typestr == "prism") {
+            type = GT_Prism;
+        }
+        else if (typestr == "capsule") {
+            type = GT_Capsule;
         }
         else if (typestr.empty()) {
             type = GT_None;
@@ -1500,6 +1545,55 @@ void KinBody::GeometryInfo::DeserializeJSON(const rapidjson::Value &value, const
         }
         break;
 
+    case GT_Prism: {
+        _meshcollision.vertices.clear();
+        _meshcollision.indices.clear();
+        if( value.HasMember("points") && value["points"].IsArray() && value["points"].Size() >= 2 && value["points"].Size() % 2 == 0 ) {
+            _vGeomData.y = 0;
+            double height = 0;
+            if( value.HasMember("height") ) {
+                orjson::LoadJsonValueByKey(value, "height", _vGeomData.y);
+                _vGeomData.y *= fUnitScale;
+            }
+            const size_t nPoints = value["points"].Size() / 2;
+            _meshcollision.vertices.reserve(nPoints * 2);
+            _meshcollision.indices.reserve(nPoints * 3 * 2); // 2 * nPoints triangles
+            OpenRAVE::Vector vertex;
+            for( size_t ipoint = 0; ipoint < nPoints; ++ipoint ) {
+                orjson::LoadJsonValue(value["points"][ipoint * 2], vertex.x);
+                orjson::LoadJsonValue(value["points"][ipoint * 2 + 1], vertex.y);
+                vertex *= fUnitScale;
+                for( dReal z : { -_vGeomData.y * 0.5, _vGeomData.y * 0.5 } ) { // in meter
+                    vertex.z = z * fUnitScale;
+                    _meshcollision.vertices.push_back(vertex);
+                }
+                _meshcollision.indices.push_back(2 * ipoint + 0);
+                _meshcollision.indices.push_back(2 * ipoint + 1);
+                _meshcollision.indices.push_back((2 * ipoint + 2) % (2 * nPoints));
+                _meshcollision.indices.push_back(2 * ipoint + 1);
+                _meshcollision.indices.push_back((2 * ipoint + 3) % (2 * nPoints));
+                _meshcollision.indices.push_back((2 * ipoint + 2) % (2 * nPoints));
+            }
+        }
+        _modifiedFields |= KinBody::GeometryInfo::GIF_Mesh; // hard to check if mesh changed, need to do manual rapidjson operations for that
+        break;
+    }
+    case GT_Capsule:
+        vGeomDataTemp = _vGeomData;
+        if (value.HasMember("radius")) {
+            orjson::LoadJsonValueByKey(value, "radius", vGeomDataTemp.x);
+            vGeomDataTemp.x *= fUnitScale;
+        }
+        if (value.HasMember("height")) {
+            orjson::LoadJsonValueByKey(value, "height", vGeomDataTemp.y);
+            vGeomDataTemp.y *= fUnitScale;
+        }
+        if (vGeomDataTemp != _vGeomData) {
+            _vGeomData = vGeomDataTemp;
+            _meshcollision.Clear();
+        }
+        break;
+
     case GT_TriMesh:
         if (value.HasMember("mesh")) {
             orjson::LoadJsonValueByKey(value, "mesh", _meshcollision);
@@ -1636,6 +1730,12 @@ AABB KinBody::GeometryInfo::ComputeAABB(const Transform& tGeometryWorld) const
         ab.extents.z = (dReal)0.5*RaveFabs(tglobal.m[10])*_vGeomData.y + RaveSqrt(max(dReal(0),1-tglobal.m[10]*tglobal.m[10]))*_vGeomData.x;
         ab.pos = tglobal.trans; //+(dReal)0.5*_vGeomData.y*Vector(tglobal.m[2],tglobal.m[6],tglobal.m[10]);
         break;
+    case GT_Capsule:
+        ab.extents.x = (dReal)0.5*RaveFabs(tglobal.m[2])*_vGeomData.y + _vGeomData.x;
+        ab.extents.y = (dReal)0.5*RaveFabs(tglobal.m[6])*_vGeomData.y + _vGeomData.x;
+        ab.extents.z = (dReal)0.5*RaveFabs(tglobal.m[10])*_vGeomData.y + _vGeomData.x;
+        ab.pos = tglobal.trans;
+        break;
     case GT_Cage: {
         // have to return the entire volume, even the inner region since a lot of code use the bounding box to compute cropping and other functions
         const Vector& vCageBaseExtents = _vGeomData;
@@ -1712,6 +1812,7 @@ AABB KinBody::GeometryInfo::ComputeAABB(const Transform& tGeometryWorld) const
         break;
 
     }
+    case GT_Prism:
     case GT_ConicalFrustum:
     case GT_Axial:
     case GT_TriMesh: {
@@ -2069,6 +2170,18 @@ UpdateFromInfoResult KinBody::Geometry::UpdateFromInfo(const KinBody::GeometryIn
     else if (GetType() == GT_Axial) {
         if (_info._vAxialSlices != info._vAxialSlices) {
             RAVELOG_VERBOSE_FORMAT("geometry %s axial changed", _info._id);
+            return UFIR_RequireReinitialize;
+        }
+    }
+    else if (GetType() == GT_Prism) {
+        if( info.IsModifiedField(KinBody::GeometryInfo::GIF_Mesh) && info._meshcollision != _info._meshcollision ) {
+            RAVELOG_VERBOSE_FORMAT("geometry %s prism changed", _info._id);
+            return UFIR_RequireReinitialize;
+        }
+    }
+    else if (GetType() == GT_Capsule) {
+        if (GetCapsuleRadius() != info._vGeomData.x || GetCapsuleHeight() != info._vGeomData.y || GetCapsuleClearance() != info._vGeomData.z) {
+            RAVELOG_VERBOSE_FORMAT("geometry %s capsule changed", _info._id);
             return UFIR_RequireReinitialize;
         }
     }
