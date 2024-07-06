@@ -335,7 +335,7 @@ CodeGenerators = {}
 # except ImportError:
 #     pass
 try:
-    from openrave import ikfast_generator_cpp
+    from openravepy import ikfast_generator_cpp
     CodeGenerators['cpp'] = ikfast_generator_cpp.CodeGenerator
     IkType = ikfast_generator_cpp.IkType
 except ImportError:
