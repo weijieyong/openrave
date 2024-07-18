@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- UR5 kinematic body-->
+<!-- DH parameters: 
+ from
+https://www.universal-robots.com/articles/ur/application-installation/dh-parameters-for-calculations-of-kinematics-and-dynamics/
+  d1: 0.089159
+  a2: -0.42500
+  a3: -0.39225
+  d4: 0.10915
+  d5: 0.09465
+  d6: 0.0823 
+
+
+meshes files are from:
+https://github.com/UniversalRobots/Universal_Robots_ROS2_Description 
+-->
+
+<KinBody name="ur5">
+  <Body name="link0" type="dynamic">
+    <translation>0 0 0</translation>
+    <rotationaxis>0 0 1 180</rotationaxis>
+    <Geom type="trimesh">
+      <rotationaxis>1 0 0 90</rotationaxis>
+      <rotationaxis>0 0 1 180</rotationaxis>
+      <Data>/home/wjyong/moveit_ws/src/Universal_Robots_ROS2_Description/meshes/ur5/visual/base.dae</Data>
+      <Render>/home/wjyong/moveit_ws/src/Universal_Robots_ROS2_Description/meshes/ur5/visual/base.dae</Render>
+    </Geom>
+  </Body>
+
+  <Body name="link1" type="dynamic">
+    <offsetfrom>link0</offsetfrom>
+    <translation>0 0 0.089159</translation>
+    <quat>0 -0.7071 0 0.7071</quat>
+    <Geom type="trimesh">
+      <translation>0 0 0</translation>
+      <rotationaxis>0 0 1 90</rotationaxis>
+      <rotationaxis>1 0 0 90</rotationaxis>
+      <Data>/home/wjyong/moveit_ws/src/Universal_Robots_ROS2_Description/meshes/ur5/visual/shoulder.dae</Data>
+      <Render>/home/wjyong/moveit_ws/src/Universal_Robots_ROS2_Description/meshes/ur5/visual/shoulder.dae</Render>
+    </Geom>
+  </Body>
+
+  <Joint name="joint1" type="hinge">
+    <Body>link0</Body>
+    <Body>link1</Body>
+    <offsetfrom>link0</offsetfrom>
+    <axis>0 0 1</axis>
+    <limitsdeg>-180 180</limitsdeg>
+    <maxvel>3</maxvel>
+    <weight>1</weight>
+    <resolution>1</resolution>
+  </Joint>
+
+  <Body name="link2" type="dynamic">
+    <offsetfrom>link1</offsetfrom>
+    <translation>0 0 0.425</translation>
+    <rotationaxis>1 0 0 0</rotationaxis>
+    <Geom type="trimesh">
+      <translation>0 0.138 -0.425</translation>
+      <rotationaxis>1 0 0 90</rotationaxis>
+      <Data>/home/wjyong/moveit_ws/src/Universal_Robots_ROS2_Description/meshes/ur5/visual/upperarm.dae</Data>
+      <Render>/home/wjyong/moveit_ws/src/Universal_Robots_ROS2_Description/meshes/ur5/visual/upperarm.dae</Render>
+    </Geom>
+  </Body>
+
+  <Joint name="joint2" type="hinge">
+    <Body>link1</Body>
+    <Body>link2</Body>
+    <offsetfrom>link1</offsetfrom>
+    <axis>0 1 0</axis>
+    <limitsdeg>-180 180</limitsdeg>
+    <weight>1</weight>
+    <maxvel>3</maxvel>
+    <resolution>1</resolution>
+  </Joint>
+
+  <Body name="link3" type="dynamic">
+    <offsetfrom>link2</offsetfrom>
+    <translation>0 0 0.39225</translation>
+    <rotationaxis>1 0 0 0</rotationaxis>
+    <Geom type="trimesh">
+      <translation>0 0.0165 -0.39225</translation>
+      <rotationaxis>1 0 0 90</rotationaxis>
+      <Data>/home/wjyong/moveit_ws/src/Universal_Robots_ROS2_Description/meshes/ur5/visual/forearm.dae</Data>
+      <Render>/home/wjyong/moveit_ws/src/Universal_Robots_ROS2_Description/meshes/ur5/visual/forearm.dae</Render>
+    </Geom>
+  </Body>
+
+  <Joint name="joint3" type="hinge">
+    <Body>link2</Body>
+    <Body>link3</Body>
+    <offsetfrom>link2</offsetfrom>
+    <axis>0 1 0</axis>
+    <limitsdeg>-180 180</limitsdeg>
+    <weight>1</weight>
+    <maxvel>3</maxvel>
+    <resolution>1</resolution>
+  </Joint>
+
+  <Body name="link4" type="dynamic">
+    <offsetfrom>link3</offsetfrom>
+    <translation>0 0.10915 0</translation>
+    <rotationaxis>0 1 0 90</rotationaxis>
+    <Geom type="trimesh">
+      <translation>0 -0.093 0</translation>
+      <rotationaxis>1 0 0 90</rotationaxis>
+      <Data>/home/wjyong/moveit_ws/src/Universal_Robots_ROS2_Description/meshes/ur5/visual/wrist1.dae</Data>
+      <Render>/home/wjyong/moveit_ws/src/Universal_Robots_ROS2_Description/meshes/ur5/visual/wrist1.dae</Render>
+    </Geom>
+  </Body>
+
+  <Joint name="joint4" type="hinge">
+    <Body>link3</Body>
+    <Body>link4</Body>
+    <offsetfrom>link3</offsetfrom>
+    <axis>0 1 0</axis>
+    <limitsdeg>-180 180</limitsdeg>
+    <weight>1</weight>
+    <maxvel>3</maxvel>
+    <resolution>1</resolution>
+  </Joint>
+
+  <Body name="link5" type="dynamic">
+    <offsetfrom>link4</offsetfrom>
+    <translation>0 0 0.09465</translation>
+    <rotationaxis>1 0 0 0</rotationaxis>
+    <Geom type="trimesh">
+      <translation>0 0 -0.09465</translation>
+      <rotationaxis>1 0 0 90</rotationaxis>
+      <Data>/home/wjyong/moveit_ws/src/Universal_Robots_ROS2_Description/meshes/ur5/visual/wrist2.dae</Data>
+      <Render>/home/wjyong/moveit_ws/src/Universal_Robots_ROS2_Description/meshes/ur5/visual/wrist2.dae</Render>
+    </Geom>
+  </Body>
+
+  <Joint name="joint5" type="hinge">
+    <Body>link4</Body>
+    <Body>link5</Body>
+    <offsetfrom>link4</offsetfrom>
+    <axis>0 0 1</axis>
+    <limitsdeg>-180 180</limitsdeg>
+    <weight>1</weight>
+    <maxvel>3</maxvel>
+    <resolution>1</resolution>
+  </Joint>
+
+  <Body name="link6" type="dynamic">
+    <offsetfrom>link5</offsetfrom>
+    <translation>0 0.0823 0</translation> <!-- end effector offset can be added here /or the dummy
+    eef link -->
+    <rotationaxis>-1 0 0 90</rotationaxis>
+    <Geom type="trimesh">
+      <translation>0 0 -0.0823</translation>
+      <rotationaxis>0 1 0 180</rotationaxis>
+      <rotationaxis>0 0 1 180</rotationaxis>
+      <Data>/home/wjyong/moveit_ws/src/Universal_Robots_ROS2_Description/meshes/ur5/visual/wrist3.dae</Data>
+      <Render>/home/wjyong/moveit_ws/src/Universal_Robots_ROS2_Description/meshes/ur5/visual/wrist3.dae</Render>
+    </Geom>
+  </Body>
+
+  <Joint name="joint6" type="hinge">
+    <Body>link5</Body>
+    <Body>link6</Body>
+    <offsetfrom>link5</offsetfrom>
+    <axis>0 1 0</axis>
+    <limitsdeg>-180 180</limitsdeg>
+    <weight>1</weight>
+    <maxvel>3</maxvel>
+    <resolution>1</resolution>
+  </Joint>
+
+  <!-- Display the end-effector axes for easier visualization -->
+  <Body name="eef" type="dynamic">
+    <offsetfrom>link6</offsetfrom>
+    <translation>0 0 0.10</translation> <!-- end effector offset can be added here -->
+    <rotationaxis>-1 0 0 0</rotationaxis>
+    <Geom type="cylinder">
+      <Translation>0.05 0 0</Translation>
+      <rotationaxis>0 0 1 90</rotationaxis>
+      <radius>0.003</radius>
+      <height>0.1</height>
+      <diffuseColor>1 0 0</diffuseColor>
+    </Geom>
+    <Geom type="cylinder">
+      <Translation>0 0.05 0</Translation>
+      <rotationaxis>0 0 1 0</rotationaxis>
+      <radius>0.003</radius>
+      <height>0.1</height>
+      <diffuseColor>0 1 0</diffuseColor>
+    </Geom>
+    <Geom type="cylinder">
+      <Translation>0 0 0.05</Translation>
+      <rotationaxis>1 0 0 90</rotationaxis>
+      <radius>0.003</radius>
+      <height>0.1</height>
+      <diffuseColor>0 0 1</diffuseColor>
+    </Geom>
+  </Body>
+
+  <Joint name="dummyhand" type="hinge">
+    <Body>link6</Body>
+    <Body>eef</Body>
+    <limitsdeg>-0 0</limitsdeg>
+  </Joint>
+</KinBody>

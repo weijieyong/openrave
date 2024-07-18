@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<Robot name="UR5">
+  <KinBody file="ur5.kinbody.xml"/>
+    <Manipulator name="arm">
+      <base>link0</base>
+      <effector>eef</effector> <!-- if want to do IK without considering EEF, can set to link6 -->
+    </Manipulator>
+</Robot>
