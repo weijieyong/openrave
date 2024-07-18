@@ -31,6 +31,9 @@ Convert from SDF to Collada.
 2. Found the documentation on OpenRAVE XML [here](https://web.archive.org/web/20220120162558/http://openrave.programmingvision.com/wiki/index.php/Format:XML#Custom_XML)
 3. For IKFast generation, only minimal links and joints parameters are needed.
 4. We can use the XML directly to generate the IKFast solution without converting it to Collada.
+5. check the XML with `openrave.py <PATH TO XML>`
+
+![UR5-view](images/ur5-view.png)
 
 ### 2. Generate IKFast C++ File
 
